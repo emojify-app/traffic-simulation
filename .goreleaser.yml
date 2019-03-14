@@ -1,0 +1,23 @@
+---
+builds:
+- ldflags:
+  - -s -w -X "main.version={{.Version}}"
+  binary: emojify-traffic
+  goos:
+  - linux
+  goarch:
+  - amd64
+  env:
+  - CGO_ENABLED=0
+
+dockers:
+-
+  binaries:
+    - emojify-traffic
+  goos: linux
+  goarch: amd64
+  dockerfile: Dockerfile
+  image_templates:
+  - "nicholasjackson/emojify-traffic:latest"
+  - "nicholasjackson/emojify-traffic:{{.Tag}}"
+  - "nicholasjackson/emojify-traffic:{{.Commit}}"
