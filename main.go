@@ -66,9 +66,9 @@ func EmojifyFlow() error {
 // load the homepage
 func homePage(ctx context.Context) (context.Context, error) {
 	urls := []string{
-		"",
+		"/",
 		"/config/env.js",
-		"/images/emojify_small.jpg",
+		"/images/emojify_small.png",
 		"/images/consul.png",
 		"/images/emojify.png",
 	}
