@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -84,7 +85,8 @@ func homePage(ctx context.Context) (context.Context, error) {
 			resp, err := http.Get(*baseURI + u)
 			defer func(response *http.Response) {
 				if response != nil && response.Body != nil {
-					ioutil.NopCloser(response.Body)
+					io.Copy(ioutil.Discard, response.Body)
+					response.Body.Close()
 				}
 			}(resp)
 
@@ -126,7 +128,8 @@ func postAPI(ctx context.Context) (context.Context, error) {
 func getCache(ctx context.Context) (context.Context, error) {
 	resp, err := http.Get(fmt.Sprintf(*baseURI+"/api/cache/%s", ctx.Value(imageKey{})))
 	if resp != nil && resp.Body != nil {
-		ioutil.NopCloser(resp.Body)
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
 	}
 
 	if err != nil || resp.StatusCode != 200 {
