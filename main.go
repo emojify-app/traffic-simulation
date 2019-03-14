@@ -19,8 +19,7 @@ import (
 
 type imageKey struct{}
 
-var baseURI string
-
+var baseURI = flag.String("base-uri", "", "base URI for requests")
 var timeout = flag.Duration("timeout", 60*time.Second, "timeout for each scenario")
 var duration = flag.Duration("duration", 30*time.Minute, "test duration")
 var users = flag.Int("users", 5, "concurrent users")
@@ -28,8 +27,6 @@ var users = flag.Int("users", 5, "concurrent users")
 func main() {
 
 	flag.Parse()
-
-	baseURI = "https://emojify.today/"
 
 	fmt.Println("Benchmarking application")
 
@@ -70,10 +67,10 @@ func EmojifyFlow() error {
 func homePage(ctx context.Context) (context.Context, error) {
 	urls := []string{
 		"",
-		"config/env.js",
-		"images/emojify_small.jpg",
-		"images/consul.png",
-		"images/emojify.png",
+		"/config/env.js",
+		"/images/emojify_small.jpg",
+		"/images/consul.png",
+		"/images/emojify.png",
 	}
 
 	var retErrors *multierror.Error
@@ -84,7 +81,7 @@ func homePage(ctx context.Context) (context.Context, error) {
 	// process these files asynchronously like the browser would
 	for _, u := range urls {
 		go func(u string) {
-			resp, err := http.Get(baseURI + u)
+			resp, err := http.Get(*baseURI + u)
 			defer func(response *http.Response) {
 				if response != nil && response.Body != nil {
 					ioutil.NopCloser(response.Body)
@@ -107,10 +104,10 @@ func homePage(ctx context.Context) (context.Context, error) {
 // post to the api
 func postAPI(ctx context.Context) (context.Context, error) {
 	images := []string{
-		baseURI + "pictures/1.jpg",
+		*baseURI + "/pictures/1.jpg",
 	}
 
-	resp, err := http.Post(baseURI+"api/", "text/plain", bytes.NewReader([]byte(images[0])))
+	resp, err := http.Post(*baseURI+"/api/", "text/plain", bytes.NewReader([]byte(images[0])))
 
 	if resp != nil && resp.Body != nil {
 		d, _ := ioutil.ReadAll(resp.Body)
@@ -127,7 +124,7 @@ func postAPI(ctx context.Context) (context.Context, error) {
 
 // fetch from the cache
 func getCache(ctx context.Context) (context.Context, error) {
-	resp, err := http.Get(fmt.Sprintf(baseURI+"/api/cache/%s", ctx.Value(imageKey{})))
+	resp, err := http.Get(fmt.Sprintf(*baseURI+"/api/cache/%s", ctx.Value(imageKey{})))
 	if resp != nil && resp.Body != nil {
 		ioutil.NopCloser(resp.Body)
 	}
