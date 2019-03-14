@@ -24,6 +24,7 @@ var baseURI = flag.String("base-uri", "", "base URI for requests")
 var timeout = flag.Duration("timeout", 60*time.Second, "timeout for each scenario")
 var duration = flag.Duration("duration", 30*time.Minute, "test duration")
 var users = flag.Int("users", 5, "concurrent users")
+var showProgress = flag.Bool("show-progress", true, "show graphical progress")
 
 func main() {
 
@@ -31,7 +32,7 @@ func main() {
 
 	fmt.Println("Benchmarking application")
 
-	b := bench.New(*users, *duration, 0*time.Second, *timeout)
+	b := bench.New(*showProgress, *users, *duration, 0*time.Second, *timeout)
 	b.AddOutput(0*time.Second, os.Stdout, output.WriteTabularData)
 	b.AddOutput(1*time.Second, util.NewFile("./output.txt"), output.WriteTabularData)
 	b.AddOutput(1*time.Second, util.NewFile("./output.png"), output.PlotData)
