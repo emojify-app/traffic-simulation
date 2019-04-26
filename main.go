@@ -16,19 +16,40 @@ import (
 	"github.com/nicholasjackson/bench"
 	"github.com/nicholasjackson/bench/output"
 	"github.com/nicholasjackson/bench/util"
+	"github.com/nicholasjackson/env"
 )
+
+var version = "dev"
 
 type imageKey struct{}
 
-var baseURI = flag.String("base-uri", "", "base URI for requests")
-var timeout = flag.Duration("timeout", 60*time.Second, "timeout for each scenario")
-var duration = flag.Duration("duration", 30*time.Minute, "test duration")
-var users = flag.Int("users", 5, "concurrent users")
-var showProgress = flag.Bool("show-progress", true, "show graphical progress")
+var baseURI = env.String("BASE_URI", true, "", "base URI for requests")
+var timeout = env.Duration("TIMEOUT", false, 60*time.Second, "timeout for each scenario")
+var duration = env.Duration("DURATION", false, 30*time.Minute, "test duration")
+var users = env.Int("USERS", false, 5, "concurrent users")
+var showProgress = env.Bool("SHOW_PROGRESS", false, true, "show graphical progress")
+
+var help = flag.Bool("help", false, "--help to show help")
 
 func main() {
 
 	flag.Parse()
+
+	// if the help flag is passed show configuration options
+	if *help == true {
+		fmt.Println("Emojify Traffic version:", version)
+		fmt.Println("Configuration values are set using environment variables, for info please see the following list:")
+		fmt.Println("")
+		fmt.Println(env.Help())
+		os.Exit(0)
+	}
+
+	// Parse the config env vars
+	err := env.Parse()
+	if err != nil {
+		fmt.Println(env.Help())
+		os.Exit(1)
+	}
 
 	fmt.Println("Benchmarking application")
 
