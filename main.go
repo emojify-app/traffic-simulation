@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"sync"
@@ -22,6 +24,7 @@ import (
 var version = "dev"
 
 type imageKey struct{}
+type postResponse struct{}
 
 var baseURI = env.String("BASE_URI", true, "", "base URI for requests")
 var timeout = env.Duration("TIMEOUT", false, 60*time.Second, "timeout for each scenario")
@@ -78,6 +81,12 @@ func EmojifyFlow() error {
 		return err
 	}
 
+	// wait until the api is finished
+	ctx, err = queryAPI(ctx)
+	if err != nil {
+		return err
+	}
+
 	ctx, err = getCache(ctx)
 	if err != nil {
 		return err
@@ -129,13 +138,20 @@ func homePage(ctx context.Context) (context.Context, error) {
 func postAPI(ctx context.Context) (context.Context, error) {
 	images := []string{
 		*baseURI + "/pictures/1.jpg",
+		*baseURI + "/pictures/2.jpg",
+		*baseURI + "/pictures/3.jpg",
+		*baseURI + "/pictures/4.jpg",
+		*baseURI + "/pictures/5.jpg",
 	}
 
-	resp, err := http.Post(*baseURI+"/api/", "text/plain", bytes.NewReader([]byte(images[0])))
+	// select a random image
+	rndImage := images[rand.Intn(len(images))]
+
+	resp, err := http.Post(*baseURI+"/v2/api/emojify/", "text/plain", bytes.NewReader([]byte(rndImage)))
 
 	if resp != nil && resp.Body != nil {
 		d, _ := ioutil.ReadAll(resp.Body)
-		ctx = context.WithValue(ctx, imageKey{}, string(d))
+		ctx = context.WithValue(ctx, postResponse{}, d)
 		resp.Body.Close()
 	}
 
@@ -146,9 +162,42 @@ func postAPI(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
+// query the api and block until job finished
+func queryAPI(ctx context.Context) (context.Context, error) {
+	// get the id from the response
+	r := ctx.Value(postResponse{})
+	keys := make(map[string]string)
+	json.Unmarshal(r.([]byte), &keys)
+
+	// loop until the queue has processed the job
+	for n := 0; n < 100; n++ {
+		resp, err := http.Get(fmt.Sprintf("%s/v2/api/emojify/%s", *baseURI, keys["id"]))
+
+		if resp != nil && resp.Body != nil {
+			d, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			// check the status
+			json.Unmarshal(d, &keys)
+			if keys["status"] == "FINISHED" {
+				ctx = context.WithValue(ctx, imageKey{}, keys["id"])
+				return ctx, nil
+			}
+		}
+
+		if err != nil || resp.StatusCode != 200 {
+			return ctx, fmt.Errorf("Query API failed status: %d error: %s", resp.StatusCode, err)
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	return ctx, nil
+}
+
 // fetch from the cache
 func getCache(ctx context.Context) (context.Context, error) {
-	resp, err := http.Get(fmt.Sprintf(*baseURI+"/api/cache/%s", ctx.Value(imageKey{})))
+	resp, err := http.Get(fmt.Sprintf(*baseURI+"/v2/api/cache/%s", ctx.Value(imageKey{})))
 	if resp != nil && resp.Body != nil {
 		io.Copy(ioutil.Discard, resp.Body)
 		resp.Body.Close()
