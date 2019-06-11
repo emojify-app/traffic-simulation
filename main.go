@@ -141,7 +141,7 @@ func postAPI(ctx context.Context) (context.Context, error) {
 		*baseURI + "/pictures/2.jpg",
 		*baseURI + "/pictures/3.jpg",
 		*baseURI + "/pictures/4.jpg",
-		*baseURI + "/pictures/5.jpg",
+		*baseURI + "/pictures/6.jpg",
 	}
 
 	// select a random image
